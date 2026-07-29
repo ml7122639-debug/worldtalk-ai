@@ -102,10 +102,12 @@ class _TranslationInputFieldState extends State<TranslationInputField> {
               ),
               decoration: InputDecoration(
                 hintText: widget.hintText,
+                hintMaxLines: 2,
                 hintStyle: TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   color: Colors.grey.shade400,
                   fontWeight: FontWeight.w400,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,

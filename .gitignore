@@ -1,0 +1,55 @@
+# Flutter
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+.vscode/
+
+# Android
+android/.gradle/
+android/local.properties
+android/key.properties
+android/app/google-services.json
+android/app/release/
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# macOS
+macos/Pods/
+.metadata
+
+# Windows
+windows/flutter/ephemeral/
+
+# Generated
+*.g.dart
+*.freezed.dart
+*.gen.dart
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Large binaries
+*.apk
+*.aab
+*.ipa
+*.zip
+
+# macOS
+.DS_Store
+
+# Secrets
+*-release.apk
+*.jks
+*.keystore

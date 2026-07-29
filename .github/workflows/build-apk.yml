@@ -4,7 +4,6 @@ on:
   push:
     branches: [main, master]
   workflow_dispatch:
-    inputs: {}
 
 jobs:
   build:
@@ -68,18 +67,3 @@ jobs:
           name: worldtalk-ai-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
-
-      - name: Create GitHub Release
-        if: github.event_name == 'workflow_dispatch'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "v1.0.0-build${{ github.run_number }}" \
-            build/app/outputs/bundle/release/app-release.aab \
-            build/app/outputs/flutter-apk/app-release.apk \
-            --title "Build #${{ github.run_number }} — Signed AAB + APK" \
-            --notes "Signed release build #${{ github.run_number }}
-
-**AAB**: app-release.aab
-**APK**: app-release.apk" \
-            --prerelease

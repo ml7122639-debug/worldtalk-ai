@@ -1,4 +1,4 @@
-name: Build Release APK
+name: Build Release
 
 on:
   push:
@@ -6,11 +6,13 @@ on:
     paths-ignore:
       - '**.md'
       - 'docs/**'
-  workflow_dispatch:  # manual trigger from GitHub UI
+      - 'SETUP.md'
+      - 'README.md'
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Build APK
+    name: Build Signed AAB
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -30,19 +32,118 @@ jobs:
           flutter-version: '3.44.8'
           channel: 'stable'
 
-      - name: Generate Android project files
+      - name: Generate Android project
+        run: flutter create --org com.worldtalk --project-name worldtalk_ai .
+
+      - name: Patch Android permissions
         run: |
-          flutter create --org com.worldtalk --project-name worldtalk_ai .
+          cat > android/app/src/main/AndroidManifest.xml << 'MANIFEST'
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.worldtalk.worldtalk_ai">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <application
+        android:label="WorldTalk AI"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true"
+        android:allowBackup="true"
+        android:supportsRtl="true">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <meta-data android:name="io.flutter.embedding.android.NormalTheme" android:resource="@style/NormalTheme" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <meta-data android:name="flutterEmbedding" android:value="2" />
+    </application>
+</manifest>
+MANIFEST
 
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Setup signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/worldtalk-keystore.jks
+          cat > android/key.properties << EOF
+storeFile=worldtalk-keystore.jks
+storePassword=$KEYSTORE_PASSWORD
+keyAlias=$KEY_ALIAS
+keyPassword=$KEY_PASSWORD
+EOF
+          cat > android/app/build.gradle << 'EOF'
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+android {
+    namespace "com.worldtalk.worldtalk_ai"
+    compileSdk 34
+    defaultConfig {
+        applicationId "com.worldtalk.worldtalk_ai"
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+    }
+    def keystoreProperties = new Properties()
+    def keystorePropertiesFile = rootProject.file('key.properties')
+    if (keystorePropertiesFile.exists()) {
+        keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    }
+    signingConfigs {
+        release {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+            storePassword keystoreProperties['storePassword']
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+flutter { source '../..' }
+dependencies {}
+EOF
+
+      - name: Build release AAB
+        run: flutter build appbundle --release
+
       - name: Build release APK
         run: flutter build apk --release
 
-      - name: Upload APK as artifact
+      - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: worldtalk-ai-release
+          name: worldtalk-ai-release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          retention-days: 90
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: worldtalk-ai-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30

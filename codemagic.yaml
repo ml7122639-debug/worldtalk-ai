@@ -1,0 +1,23 @@
+# Codemagic CI/CD Configuration
+# Free tier: 500 build minutes/month
+# https://codemagic.io
+
+workflows:
+  worldtalk-ai-apk:
+    name: Build WorldTalk AI APK
+    instance_type: linux
+    max_build_duration: 25
+    environment:
+      flutter: 3.44.8
+      java: 21
+    scripts:
+      - name: Generate Android project
+        script: flutter create --org com.worldtalk --project-name worldtalk_ai .
+      - name: Install dependencies
+        script: flutter pub get
+      - name: Run analysis
+        script: flutter analyze --no-fatal-infos
+      - name: Build release APK
+        script: flutter build apk --release
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk

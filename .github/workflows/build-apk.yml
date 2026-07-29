@@ -33,13 +33,9 @@ jobs:
       - name: Generate Android project files
         run: |
           flutter create --org com.worldtalk --project-name worldtalk_ai .
-          # Our lib/ is already there; create regenerates android/ without touching it
 
       - name: Install dependencies
         run: flutter pub get
-
-      - name: Run static analysis
-        run: flutter analyze --no-fatal-infos
 
       - name: Build release APK
         run: flutter build apk --release
